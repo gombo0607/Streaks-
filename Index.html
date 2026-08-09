@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Day Counter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 { font-size: 3rem; margin: 10px 0; color: #333; }
+        button {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .status { margin-top: 15px; color: #666; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Current Progress</h2>
+    <h1 id="dayDisplay">Day 1</h1>
+    <button id="continueBtn" onclick="advanceDay()">Continue</button>
+    <div class="status" id="statusMsg"></div>
+</div>
+
+<script>
+    // Load saved data or set defaults
+    let currentDay = parseInt(localStorage.getItem('currentDay')) || 1;
+    let lastPressedMidnight = parseInt(localStorage.getItem('lastPressedMidnight')) || 0;
+
+    const dayDisplay = document.getElementById('dayDisplay');
+    const continueBtn = document.getElementById('continueBtn');
+    const statusMsg = document.getElementById('statusMsg');
+
+    // Get the timestamp for the most recent midnight tonight
+    function getTodayMidnight() {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+    }
+
+    function checkSystemState() {
+        const todayMidnight = getTodayMidnight();
+        
+        if (lastPressedMidnight === 0) {
+            // Brand new setup
+            continueBtn.disabled = false;
+            statusMsg.innerText = "Ready for the first entry.";
+        } else if (todayMidnight === lastPressedMidnight) {
+            // Admin already pressed the button during this current day cycle
+            continueBtn.disabled = true;
+            statusMsg.innerText = "Button locked until next midnight.";
+        } else if (todayMidnight > lastPressedMidnight) {
+            // Check if they missed exactly one midnight or more
+            const oneDayInMs = 24 * 60 * 60 * 1000;
+            if (todayMidnight - lastPressedMidnight > oneDayInMs) {
+                // A full day was skipped without clicking. Reset to Day 1.
+                currentDay = 1;
+                localStorage.setItem('currentDay', currentDay);
+                statusMsg.innerText = "Missed deadline! System reset to Day 1.";
+            } else {
+                // Exactly one midnight has passed. Button unlocks.
+                continueBtn.disabled = false;
+                statusMsg.innerText = "New day active! Please press continue.";
+            }
+        }
+        
+        dayDisplay.innerText = "Day " + currentDay;
+    }
+
+    function advanceDay() {
+        currentDay += 1;
+        lastPressedMidnight = getTodayMidnight();
+
+        // Save to phone storage
+        localStorage.setItem('currentDay', currentDay);
+        localStorage.setItem('lastPressedMidnight', lastPressedMidnight);
+
+        // Update UI
+        checkSystemState();
+    }
+
+    // Run verification immediately when opening the page
+    checkSystemState();
+</script>
+
+</body>
+</html>
